@@ -9,7 +9,7 @@
     public class Program : ModuleBase<SocketCommandContext>
     {
         [Command("OsuNews")]
-        [Alias("o-n")]
+        [Alias("news")]
         public async Task OsuNewsAsync()
         {
             WebClient wc = new();
@@ -18,17 +18,20 @@
             string html = wc.DownloadString(url);
             string text = html.Remove(0, html.IndexOf('['));
 
+            string substringEndImg = "e6a7067\",";
             string substringImg = "\"first_image\":\"";
             string substringTtl = "\"title\":\"";
             string substringPreview = "\"preview\":\"";
             string substringUrlNews = "\"slug\":\"";
 
+            List<int> endlImgIndexs = WordIndex(text, substringEndImg);
             List<int> ttlIndexs = WordIndex(text, substringTtl);
             List<int> imgIndexs = WordIndex(text, substringImg);
             List<int> previewIndexs = WordIndex(text, substringPreview);
             List<int> urlNewsIndexs = WordIndex(text, substringUrlNews);
 
-            string imageUrl = text.Substring(imgIndexs[0] + substringImg.Length, imgIndexs[0] + 4);
+            string imageUrl = text[(imgIndexs[0] + substringImg.Length)..];
+            imageUrl = imageUrl.Substring(0, imageUrl.IndexOf('\"'));
             imageUrl = imageUrl.Replace("\\", null);
 
             string title = text[(ttlIndexs[0] + substringTtl.Length)..];
@@ -38,7 +41,7 @@
             preview = preview.Substring(0, preview.IndexOf('\"'));
 
             string urlNews = text[(urlNewsIndexs[0] + substringUrlNews.Length)..];
-            urlNews = siteUrl + urlNews.Substring(0, urlNews.IndexOf('\"'));
+            urlNews = $"{siteUrl}{urlNews.Substring(0, urlNews.IndexOf('\"'))}";
 
             var embed = new BotEmbedBuilder()
                 .WithUrl(urlNews)
@@ -48,7 +51,7 @@
                 .Build();
             await this.ReplyAsync(embed: embed);
 
-            ConsoleReport.Report("Была опубликована одна новость.");
+            ConsoleReport.Report("Была опубликована новость.");
         }
         private static List<int> WordIndex(string str, string findString)
         {
