@@ -4,6 +4,7 @@
     using System.Net;
     using System.Threading.Tasks;
     using Discord.Commands;
+    using Newtonsoft.Json.Linq;
     using OsuBotNews.Common;
 
     public class Program : ModuleBase<SocketCommandContext>
@@ -13,35 +14,17 @@
         public async Task OsuNewsAsync()
         {
             WebClient wc = new();
+
             string url = "https://osu.ppy.sh/api/v2/news";
             string siteUrl = "https://osu.ppy.sh/home/news/";
+
             string html = wc.DownloadString(url);
-            string text = html.Remove(0, html.IndexOf('['));
+            var json = JObject.Parse(html);
 
-            string substringEndImg = "e6a7067\",";
-            string substringImg = "\"first_image\":\"";
-            string substringTtl = "\"title\":\"";
-            string substringPreview = "\"preview\":\"";
-            string substringUrlNews = "\"slug\":\"";
-
-            List<int> endlImgIndexs = WordIndex(text, substringEndImg);
-            List<int> ttlIndexs = WordIndex(text, substringTtl);
-            List<int> imgIndexs = WordIndex(text, substringImg);
-            List<int> previewIndexs = WordIndex(text, substringPreview);
-            List<int> urlNewsIndexs = WordIndex(text, substringUrlNews);
-
-            string imageUrl = text[(imgIndexs[0] + substringImg.Length)..];
-            imageUrl = imageUrl.Substring(0, imageUrl.IndexOf('\"'));
-            imageUrl = imageUrl.Replace("\\", null);
-
-            string title = text[(ttlIndexs[0] + substringTtl.Length)..];
-            title = title.Substring(0, title.IndexOf('\"'));
-
-            string preview = text[(previewIndexs[0] + substringPreview.Length)..];
-            preview = preview.Substring(0, preview.IndexOf('\"'));
-
-            string urlNews = text[(urlNewsIndexs[0] + substringUrlNews.Length)..];
-            urlNews = $"{siteUrl}{urlNews.Substring(0, urlNews.IndexOf('\"'))}";
+            var urlNews = siteUrl + json["news_posts"][0]["slug"].ToString();
+            var title = json["news_posts"][0]["title"].ToString();
+            var imageUrl = json["news_posts"][0]["first_image"].ToString();
+            var preview = json["news_posts"][0]["preview"].ToString();
 
             var embed = new BotEmbedBuilder()
                 .WithUrl(urlNews)
@@ -52,19 +35,6 @@
             await this.ReplyAsync(embed: embed);
 
             ConsoleReport.Report("Была опубликована новость.");
-        }
-        private static List<int> WordIndex(string str, string findString)
-        {
-            var indices = new List<int>();
-            int index = str.IndexOf(findString, 0);
-
-            while (index > -1)
-            {
-                indices.Add(index);
-                index = str.IndexOf(findString, index + findString.Length);
-            }
-
-            return indices;
         }
     }
 }
